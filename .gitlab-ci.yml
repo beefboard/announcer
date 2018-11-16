@@ -7,7 +7,7 @@ stages:
 
 # This folder is cached between builds
 # http://docs.gitlab.com/ce/ci/yaml/README.html#cache
-before-script:
+before_script:
   - pip install pipenv
 
 test:
