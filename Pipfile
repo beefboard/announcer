@@ -24,3 +24,4 @@ allow_prereleases = true
 
 [scripts]
 test = 'nose2'
+lint = 'black --check announcer'

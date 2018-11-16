@@ -18,6 +18,7 @@ test:
   stage: test
   script:
     - pipenv install --dev
+    - pipenv run lint
     - pipenv run test
 
 build:
