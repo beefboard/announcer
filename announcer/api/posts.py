@@ -1,10 +1,10 @@
-from typing import List
 import datetime
-from dateutil.parser import parse
+import json
+from typing import List
 
 import aiohttp
 from aiohttp.client_exceptions import ClientConnectionError
-import json
+from dateutil.parser import parse
 
 from dataclasses import dataclass
 
@@ -64,10 +64,12 @@ class PostsApi:
         except json.JSONDecodeError as e:
             raise InvalidResponse("Could not decode response json")
 
-    async def get_posts(self) -> List[Post]:
+    async def get_posts(self, query=None) -> List[Post]:
         async with aiohttp.ClientSession() as session:
             data = await self._get_response(
-                session.get(self._address + "/v1/posts", timeout=PostsApi.TIMEOUT)
+                session.get(
+                    self._address + "/v1/posts", params=query, timeout=PostsApi.TIMEOUT
+                )
             )
 
             if PostsApi.POSTS_KEY not in data:

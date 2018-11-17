@@ -38,6 +38,28 @@ class TestPostsApi(asynctest.TestCase):
             assert post.id == mock_post["id"]
             assert post.title == mock_post["title"]
 
+    @aioresponses()
+    async def test_get_posts_query(self, m: aioresponses) -> None:
+        mock_post = {
+            "id": "asdasd",
+            "date": datetime.datetime.now().isoformat(),
+            "title": "test",
+            "author": "me",
+            "content": "test",
+            "approved": True,
+            "approvalRequested": True,
+            "numImages": 0,
+            "notified": False,
+            "pinned": False,
+        }
+        m.get(
+            TEST_POSTS_ADDRESS + "/v1/posts?approved=false",
+            payload={"posts": [mock_post]},
+        )
+
+        posts_response = await posts_client.get_posts(query={"approved": "false"})
+        assert len(posts_response) is 1
+
     async def test_get_posts_error(self) -> None:
         error = None
         try:
