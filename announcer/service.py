@@ -6,6 +6,7 @@ from announcer.broadcasters.email import (
     EmailBroadcaster,
     EmailBroadcasterError,
 )
+import asyncio
 
 
 class AnnouncerService:
@@ -46,7 +47,6 @@ Please review post here: {post_link}
         for new_post in all_new_posts:
             if not new_post.approval_requested:
                 new_posts.append(new_post)
-
         return new_posts
 
     async def _get_admins(self) -> List[str]:
@@ -77,11 +77,19 @@ Please review post here: {post_link}
 
         return emails
 
+    async def _set_posts_requested(self, posts: List[Post]) -> None:
+        tasks = []
+        for post in posts:
+            tasks.append(self._posts_api.set_approval_requested(post.id, True))
+
+        await asyncio.wait(tasks)
+
     async def _tick(self):
         new_posts = await self._get_new_posts()
-        admin_emails = await self._get_admins()
+        if new_posts:
+            admin_emails = await self._get_admins()
 
-        emails = self._generate_emails(admin_emails, new_posts)
+            emails = self._generate_emails(admin_emails, new_posts)
 
-        await self._email_broadcaster.send(emails)
-
+            await self._email_broadcaster.send(emails)
+            await self._set_posts_requested(new_posts)

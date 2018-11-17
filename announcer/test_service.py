@@ -4,7 +4,7 @@ from announcer.service import AnnouncerService
 from announcer.api.posts import PostsApi, Post
 from announcer.api.accounts import AccountsApi, User
 from announcer.broadcasters.email import EmailBroadcaster, BroadcastEmail
-from unittest.mock import patch, MagicMock, Mock
+from unittest.mock import patch, MagicMock, Mock, call
 from typing import Any
 import datetime
 
@@ -182,6 +182,10 @@ class TestAnnouncerService(asynctest.TestCase):
         service._posts_api.get_posts.assert_called_with(query={"approved": "false"})
         service._accounts_api.get_accounts.assert_called_with({"type": "admin"})
         service._email_broadcaster.send.assert_called_with(expected_emails)
+
+        service._posts_api.set_approval_requested.assert_has_calls(
+            [call("dflksdf", True), call("sadfasdf", True)]
+        )
 
     async def test_tick_no_new_posts(self):
         service = self.generate_service()

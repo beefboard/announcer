@@ -1,10 +1,9 @@
 repos:
   - repo: https://github.com/ambv/black
-    rev: stable
+    rev: master
     hooks:
       - id: black
-        language_version: python3.6
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "" # Use the sha / tag you want to point at
+    rev: master # Use the sha / tag you want to point at
     hooks:
       - id: mypy
