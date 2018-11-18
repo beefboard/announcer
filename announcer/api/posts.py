@@ -68,7 +68,7 @@ class PostsApi:
         async with aiohttp.ClientSession() as session:
             data = await self._get_response(
                 session.get(
-                    self._address + "/v1/posts", params=query, timeout=PostsApi.TIMEOUT
+                    f"{self._address}/v1/posts", params=query, timeout=PostsApi.TIMEOUT
                 )
             )
 
@@ -86,8 +86,8 @@ class PostsApi:
         async with aiohttp.ClientSession() as session:
             data = await self._get_response(
                 session.put(
-                    self._address + "/v1/posts/" + post_id,
-                    data={"approvalRequested": requested},
+                    f"{self._address}/v1/posts/{post_id}/approvalRequested",
+                    json={"approvalRequested": requested},
                     timeout=PostsApi.TIMEOUT,
                 )
             )

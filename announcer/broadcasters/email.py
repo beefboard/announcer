@@ -1,13 +1,15 @@
-import aiosmtplib
-from aiosmtplib.errors import (
-    SMTPConnectError,
-    SMTPAuthenticationError,
-    SMTPRecipientsRefused,
-    SMTPTimeoutError,
-    SMTPResponseException,
-)
+import asyncio
 from email.mime.text import MIMEText
 from typing import List
+
+import aiosmtplib
+from aiosmtplib.errors import (
+    SMTPAuthenticationError,
+    SMTPConnectError,
+    SMTPRecipientsRefused,
+    SMTPResponseException,
+    SMTPTimeoutError,
+)
 
 
 class EmailBroadcasterError(Exception):
@@ -32,7 +34,10 @@ class SendError(EmailBroadcasterError):
 
 class BroadcastEmail:
     def __init__(self, recipients: List[str], subject: str, body: str):
-        self.recipients = recipients
+        if len(recipients) is 0:
+            raise ValueError("There must be at least one recipient")
+
+        self.recipients = set(recipients)
         self.subject = subject
         self.body = body
 
@@ -58,9 +63,10 @@ class EmailBroadcaster:
 
         return msg.as_string()
 
-    async def send(self, emails: List[BroadcastEmail]) -> None:
+    async def _send(self, emails: List[BroadcastEmail]) -> None:
         try:
             await self._client.connect()
+            await self._client.starttls()
         except SMTPConnectError as e:
             raise ConnectError(e)
         except SMTPTimeoutError as e:
@@ -90,3 +96,15 @@ class EmailBroadcaster:
             await self._client.quit()
         except:
             pass
+
+    async def send(self, emails: List[BroadcastEmail]) -> None:
+        error = None
+        try:
+            await self._send(emails)
+        except EmailBroadcasterError as e:
+            error = e
+
+        self._client.close()
+
+        if error:
+            raise error

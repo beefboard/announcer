@@ -1,9 +1,10 @@
-import unittest
-import asynctest
 import datetime
+import unittest
 
-from announcer.api.posts import PostsApi, Post, PostsApiError, InvalidResponse
+import asynctest
 from aioresponses import aioresponses
+
+from announcer.api.posts import InvalidResponse, Post, PostsApi, PostsApiError
 
 TEST_POSTS_ADDRESS = "http://localhost:3922"
 posts_client = PostsApi(TEST_POSTS_ADDRESS)
@@ -102,7 +103,8 @@ class TestPostsApi(asynctest.TestCase):
     async def test_set_approval_requested(self, m: aioresponses) -> None:
         mock_post_id = "sadfnasdf"
         m.put(
-            TEST_POSTS_ADDRESS + "/v1/posts/" + mock_post_id, payload={"success": True}
+            TEST_POSTS_ADDRESS + "/v1/posts/" + mock_post_id + "/approvalRequested",
+            payload={"success": True},
         )
 
         success = await posts_client.set_approval_requested(mock_post_id, True)
@@ -120,7 +122,10 @@ class TestPostsApi(asynctest.TestCase):
     @aioresponses()
     async def test_set_approval_requested_server_error(self, m) -> None:
         mock_post_id = "sadfnasdf"
-        m.put(TEST_POSTS_ADDRESS + "/v1/posts/" + mock_post_id, status=500)
+        m.put(
+            TEST_POSTS_ADDRESS + "/v1/posts/" + mock_post_id + "/approvalRequested",
+            status=500,
+        )
 
         error = None
         try:
@@ -134,7 +139,10 @@ class TestPostsApi(asynctest.TestCase):
         self, m: aioresponses
     ) -> None:
         mock_post_id = "sadfnasdf"
-        m.put(TEST_POSTS_ADDRESS + "/v1/posts/" + mock_post_id, body="test")
+        m.put(
+            TEST_POSTS_ADDRESS + "/v1/posts/" + mock_post_id + "/approvalRequested",
+            body="test",
+        )
         try:
             await posts_client.set_approval_requested(mock_post_id, True)
         except InvalidResponse as e:
@@ -147,7 +155,10 @@ class TestPostsApi(asynctest.TestCase):
         self, m: aioresponses
     ) -> None:
         mock_post_id = "sadfnasdf"
-        m.put(TEST_POSTS_ADDRESS + "/v1/posts/" + mock_post_id, payload={"weird": True})
+        m.put(
+            TEST_POSTS_ADDRESS + "/v1/posts/" + mock_post_id + "/approvalRequested",
+            payload={"weird": True},
+        )
         try:
             await posts_client.set_approval_requested(mock_post_id, True)
         except InvalidResponse as e:

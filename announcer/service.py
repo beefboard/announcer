@@ -1,12 +1,15 @@
+import asyncio
+import logging
 from typing import List
-from announcer.api.posts import PostsApi, PostsApiError, Post
+
 from announcer.api.accounts import AccountsApi, AccountsApiError
+from announcer.api.posts import Post, PostsApi, PostsApiError
 from announcer.broadcasters.email import (
     BroadcastEmail,
     EmailBroadcaster,
     EmailBroadcasterError,
+    SendError,
 )
-import asyncio
 
 
 class AnnouncerService:
@@ -28,7 +31,8 @@ Please review post here: {post_link}
         email_host: str,
         email_port: int,
         view_posts_base_url: str = "https://beefboard.mooo.com/posts/",
-    ) -> None:
+    ):
+        self._log = logging.getLogger(AnnouncerService.__name__)
         self._posts_api = PostsApi(posts_addr)
         self._accounts_api = AccountsApi(accounts_addr)
         self._email_broadcaster = EmailBroadcaster(
@@ -49,7 +53,7 @@ Please review post here: {post_link}
                 new_posts.append(new_post)
         return new_posts
 
-    async def _get_admins(self) -> List[str]:
+    async def _get_admin_emails(self) -> List[str]:
         admin_users = await self._accounts_api.get_accounts({"type": "admin"})
 
         emails: List[str] = []
@@ -59,13 +63,13 @@ Please review post here: {post_link}
         return emails
 
     def _generate_emails(
-        self, email_addresses: List[str], new_posts: List[Post]
+        self, recipients: List[str], new_posts: List[Post]
     ) -> List[BroadcastEmail]:
         emails = []
         for post in new_posts:
             emails.append(
                 BroadcastEmail(
-                    ["test2@test.com", "test@gmail.com"],
+                    recipients,
                     AnnouncerService.EMAIL_POST_SUBJECT,
                     AnnouncerService.EMAIL_POST_APPROVAL_TEMPLATE.format(
                         post_author=post.author,
@@ -77,19 +81,58 @@ Please review post here: {post_link}
 
         return emails
 
-    async def _set_posts_requested(self, posts: List[Post]) -> None:
+    async def _attempt_mark_post_requested(self, post: Post) -> None:
+        try:
+            await self._posts_api.set_approval_requested(post.id, True)
+        except PostsApiError as e:
+            self._log.error(f"Could not mark {post.id} as approval requested: {e}")
+
+    async def _tick(self) -> None:
+        self._log.debug("Collecting new posts")
+        try:
+            new_posts = await self._get_new_posts()
+        except PostsApiError as e:
+            self._log.error(f"Could not get new posts: {e}")
+            return
+
+        if not new_posts:
+            self._log.debug("No new posts, finishing tick")
+            return
+
+        self._log.debug("Getting admin emails")
+        try:
+            admin_emails = await self._get_admin_emails()
+        except AccountsApiError as e:
+            self._log.error(f"Could not get admin emails: {e}")
+            return
+
+        if not admin_emails:
+            return
+
+        self._log.debug(f"Got {len(admin_emails)} admin email(s)")
+
+        emails = self._generate_emails(admin_emails, new_posts)
+
+        self._log.debug(f"Broadcasting {len(emails)} email(s) to admins")
+        try:
+            await self._email_broadcaster.send(emails)
+        except SendError as e:
+            self._log.warning(
+                f"Could not send emails: ({e}). Marking emails as sent anyway"
+            )
+        except EmailBroadcasterError as e:
+            self._log.error(f"Could not broadcast messages: {e}")
+            return
+
+        self._log.debug(f"Setting {len(new_posts)} as approval requested")
         tasks = []
-        for post in posts:
-            tasks.append(self._posts_api.set_approval_requested(post.id, True))
+        for post in new_posts:
+            tasks.append(self._attempt_mark_post_requested(post))
 
         await asyncio.wait(tasks)
 
-    async def _tick(self):
-        new_posts = await self._get_new_posts()
-        if new_posts:
-            admin_emails = await self._get_admins()
-
-            emails = self._generate_emails(admin_emails, new_posts)
-
-            await self._email_broadcaster.send(emails)
-            await self._set_posts_requested(new_posts)
+    async def main_loop(self) -> None:
+        self._log.info("Starting main loop")
+        while True:
+            await self._tick()
+            await asyncio.sleep(5)

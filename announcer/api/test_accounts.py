@@ -1,9 +1,10 @@
-import unittest
-import asynctest
 import datetime
+import unittest
 
-from announcer.api.accounts import AccountsApi, User, AccountsApiError, InvalidResponse
+import asynctest
 from aioresponses import aioresponses
+
+from announcer.api.accounts import AccountsApi, AccountsApiError, InvalidResponse, User
 
 
 class TestAccountsApi(asynctest.TestCase):

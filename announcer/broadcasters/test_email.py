@@ -1,32 +1,36 @@
-import asynctest
+import asyncio
+import unittest
+from email.mime.text import MIMEText
+from unittest.mock import MagicMock, call, create_autospec, patch
+
 import aiosmtplib
+import asynctest
 from aiosmtplib.errors import (
-    SMTPResponseException,
-    SMTPConnectError,
     SMTPAuthenticationError,
+    SMTPConnectError,
     SMTPRecipientsRefused,
+    SMTPResponseException,
     SMTPTimeoutError,
 )
-from email.mime.text import MIMEText
-from unittest.mock import patch, MagicMock, create_autospec, call
+
 from announcer.broadcasters.email import (
+    BroadcastEmail,
+    BroadcasterTimeoutError,
+    ConnectError,
     EmailBroadcaster,
     EmailBroadcasterError,
     LoginError,
-    ConnectError,
-    BroadcastEmail,
     SendError,
-    BroadcasterTimeoutError,
 )
-import asyncio
 
 
 class TestEmailBroadcaster(asynctest.TestCase):
     TEST_EMAIL = "test@email.com"
 
-    def setup_smtp_mocks(self):
+    def setup_smtp_mocks(self) -> None:
         self._mock_smtp.quit.reset_mock()
         self._mock_smtp.connect.reset_mock()
+        self._mock_smtp.starttls.reset_mock()
         self._mock_smtp.login.reset_mock()
         self._mock_smtp.sendmail.reset_mock()
 
@@ -34,6 +38,7 @@ class TestEmailBroadcaster(asynctest.TestCase):
         mock_future.set_result(None)
 
         self._mock_smtp.connect.return_value = mock_future
+        self._mock_smtp.starttls.return_value = mock_future
         self._mock_smtp.login.return_value = mock_future
         self._mock_smtp.sendmail.return_value = mock_future
         self._mock_smtp.quit.return_value = mock_future
@@ -91,7 +96,7 @@ class TestEmailBroadcaster(asynctest.TestCase):
                 )
             )
 
-        self._mock_smtp.sendmail.assert_has_calls(expected_send_calls)
+        self._mock_smtp.sendmail.assert_has_calls(expected_send_calls, any_order=True)
         self._mock_smtp.quit.assert_called()
 
     async def test_send_login_failure(self) -> None:
@@ -227,3 +232,31 @@ class TestEmailBroadcaster(asynctest.TestCase):
 
         await self._client.send([email])
         self._mock_smtp.quit.assert_called()
+
+
+class TestBroadcastEmail(unittest.TestCase):
+    def test_equality(self) -> None:
+        self.assertEqual(
+            BroadcastEmail(["test@test.com", "test2@test.com"], "test", "test"),
+            BroadcastEmail(["test@test.com", "test2@test.com"], "test", "test"),
+        )
+
+        self.assertNotEqual(
+            BroadcastEmail(["test@test.com", "test2@test.com"], "test", "2"),
+            BroadcastEmail(["test@test.com", "test2@test.com"], "test", "test"),
+        )
+
+    def test_equality_same_recipients(self) -> None:
+        message = BroadcastEmail(["test2@test.com", "test@test.com"], "test", "test")
+        message2 = BroadcastEmail(["test@test.com", "test2@test.com"], "test", "test")
+
+        self.assertEqual(message, message2)
+
+    def test_empty_recipients(self) -> None:
+        error = None
+        try:
+            BroadcastEmail([], "test", "test")
+        except ValueError as e:
+            error = e
+
+        self.assertIsNotNone(error)
