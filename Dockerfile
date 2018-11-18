@@ -4,7 +4,7 @@ RUN pip install pipenv
 WORKDIR /announcer
 
 COPY Pipfile Pipfile.lock ./
-RUN pipenv install --system --deploy
+RUN pipenv install --system --deploy --ignore-pipfile
 
 COPY announcer announcer
 COPY run.py run.py

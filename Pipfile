@@ -20,7 +20,7 @@ minimock = "*"
 rope = "*"
 
 [requires]
-python_version = "3.7"
+python_version = "3.7.0"
 
 [pipenv]
 allow_prereleases = true

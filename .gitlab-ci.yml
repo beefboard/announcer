@@ -12,12 +12,12 @@ cache:
     - ~/.cache/pip/
 
 before_script:
-  - pip install pipenv
+  - pip install pipenv 
 
 test:
   stage: test
   script:
-    - pipenv install --dev
+    - pipenv install --ignore-pipfile --dev
     - pipenv run lint
     - pipenv run test
 
