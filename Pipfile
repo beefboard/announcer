@@ -13,11 +13,12 @@ black = "*"
 aioresponses = "*"
 pylint = "*"
 mypy = "*"
-"nose2" = {version = ">=0.6.5", extras = ["coverage_plugin"]}
 asynctest = "*"
 pre-commit = "*"
 minimock = "*"
 rope = "*"
+pytest = "*"
+pytest-cov = "*"
 
 [requires]
 python_version = "3.7.0"
@@ -26,5 +27,5 @@ python_version = "3.7.0"
 allow_prereleases = true
 
 [scripts]
-test = 'sh -c "mypy announcer --ignore-missing-imports && nose2 --verbose"'
+test = 'sh -c "mypy announcer --ignore-missing-imports && pytest"'
 lint = 'black --check announcer'
