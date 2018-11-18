@@ -6,4 +6,7 @@ WORKDIR /announcer
 COPY Pipfile Pipfile.lock ./
 RUN pipenv install --system --deploy
 
+COPY announcer announcer
+COPY run.py run.py
+
 ENTRYPOINT [ "python", "/announcer/run.py" ]

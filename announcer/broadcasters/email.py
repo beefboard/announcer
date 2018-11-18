@@ -107,4 +107,5 @@ class EmailBroadcaster:
         self._client.close()
 
         if error:
+            assert error is not None
             raise error
