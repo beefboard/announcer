@@ -196,7 +196,9 @@ class TestAnnouncerService(asynctest.TestCase):
             if not post.approval_requested:
                 expected_calls.append(call(post.id, True))
 
-        service._posts_api.set_approval_requested.assert_has_calls(expected_calls)
+        service._posts_api.set_approval_requested.assert_has_calls(
+            expected_calls, any_order=True
+        )
 
     async def test_tick_no_new_posts(self) -> None:
         service = self.generate_service()
