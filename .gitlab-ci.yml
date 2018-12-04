@@ -79,7 +79,7 @@ deploy:
     - ssh-keyscan $BEEFBOARD_HOST >> ~/.ssh/known_hosts
     - chmod 644 ~/.ssh/known_hosts
 
-    - if [[ "$CI_COMMIT_REF_NAME"=="development" ]]; then
+    - if [[ "$CI_COMMIT_REF_NAME" == "development" ]]; then
       SERVICE="web_beefboard-test-broadcaster";
       else
       SERVICE="web_beefboard-broadcaster";
