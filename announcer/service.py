@@ -131,8 +131,12 @@ Please review post here: {post_link}
 
         await asyncio.wait(tasks)
 
+    async def _sleep(self, time: int) -> None:
+        await asyncio.sleep(time)
+
     async def main_loop(self) -> None:
         self._log.info("Starting main loop")
+
         while True:
             await self._tick()
-            await asyncio.sleep(5)
+            await self._sleep(5)
