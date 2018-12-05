@@ -2,6 +2,7 @@ import asyncio
 import datetime
 import random
 import string
+import time
 from typing import Any
 from unittest.mock import MagicMock, Mock, call, patch
 
@@ -302,3 +303,78 @@ class TestAnnouncerService(asynctest.TestCase):
         )
 
         await service._tick()
+
+    async def test_sleep_sleeps_for_given_time(self) -> None:
+        service = self.generate_service()
+
+        start = time.time()
+        await service._sleep(0.5)
+
+        duration = time.time() - start
+        self.assertGreaterEqual(duration, 0.5)
+
+        start = time.time()
+        await service._sleep(0.2)
+
+        duration = time.time() - start
+        self.assertGreaterEqual(duration, 0.2)
+        self.assertLess(duration, 1)
+
+    async def test_main_loop_calls_tick_and_sleep(self) -> None:
+        service = self.generate_service()
+
+        service._tick = Mock(spec_set=service._tick)
+        service._sleep = Mock(spec_set=service._sleep)
+
+        tick_future: asyncio.Future = asyncio.Future()
+        sleep_future: asyncio.Future = asyncio.Future()
+
+        service._sleep.return_value = sleep_future
+        service._tick.return_value = tick_future
+
+        asyncio.ensure_future(service.main_loop())
+
+        # Hand control to loop
+        await asyncio.sleep(0)
+
+        service._tick.assert_called()
+        tick_future.set_result(None)
+
+        await asyncio.sleep(0)
+        service._sleep.assert_called_with(5)
+
+    async def test_main_loop_runs_forever(self) -> None:
+        service = self.generate_service()
+
+        service._tick = Mock(spec_set=service._tick)
+        service._sleep = Mock(spec_set=service._sleep)
+
+        tick_future: asyncio.Future = asyncio.Future()
+        sleep_future: asyncio.Future = asyncio.Future()
+
+        service._sleep.return_value = sleep_future
+        service._tick.return_value = tick_future
+
+        asyncio.ensure_future(service.main_loop())
+
+        # 1000 times seems like a while
+        for i in range(1000):
+            # Wait for tick to be called
+            await asyncio.sleep(0)
+            service._tick.assert_called()
+
+            # Ensure we know that the mock has been called again
+            service._tick.reset_mock()
+            tick_future.set_result(None)
+
+            # Ensure it can't get passed tick again
+            tick_future = asyncio.Future()
+            service._tick.return_value = tick_future
+
+            # Let it past sleep
+            await asyncio.sleep(0)
+            sleep_future.set_result(None)
+
+            # Ensure it can't get passed sleep again
+            sleep_future = asyncio.Future()
+            service._sleep.return_value = sleep_future
